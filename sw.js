@@ -1,7 +1,7 @@
 /* Service worker de Líneas de cuenta.
    Estrategia: red primero y caché de respaldo, para que el móvil abra la app sin cobertura
    y para que un despliegue nuevo se vea sin desinstalar. Subir VERSION en cada publicación. */
-const VERSION = 'lineas-cuenta-v0.1.0';
+const VERSION = 'lineas-cuenta-v0.2.0';
 const RECURSOS = [
   './',
   './index.html',

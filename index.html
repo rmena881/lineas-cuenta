@@ -29,10 +29,10 @@
     --sombra: 0 1px 2px rgba(16, 24, 40, 0.08), 0 1px 6px rgba(16, 24, 40, 0.06);
     --radio: 12px;
     --est-detectada: #6b7280;
-    --est-en-curso: #1b6fb3;
+    --est-en-trabajo: #1b6fb3;
     --est-propuesta: #b7791f;
     --est-ganada: #2e7d4f;
-    --est-descartada: #8a8f98;
+    --est-parada: #8a8f98;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-tema="claro"]) {
@@ -48,10 +48,10 @@
       --peligro: #ff8a80;
       --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
       --est-detectada: #9aa7b6;
-      --est-en-curso: #6fb1e6;
+      --est-en-trabajo: #6fb1e6;
       --est-propuesta: #e0a94a;
       --est-ganada: #5fbf86;
-      --est-descartada: #7c8590;
+      --est-parada: #7c8590;
     }
   }
   :root[data-tema="oscuro"] {
@@ -67,10 +67,10 @@
     --peligro: #ff8a80;
     --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
     --est-detectada: #9aa7b6;
-    --est-en-curso: #6fb1e6;
+    --est-en-trabajo: #6fb1e6;
     --est-propuesta: #e0a94a;
     --est-ganada: #5fbf86;
-    --est-descartada: #7c8590;
+    --est-parada: #7c8590;
   }
 
   * { box-sizing: border-box; }
@@ -106,6 +106,22 @@
   .btn-texto { border: none; background: transparent; color: var(--primario); padding: 6px 8px; min-height: 32px; }
   .btn-icono { width: 40px; padding: 0; display: inline-grid; place-items: center; }
   .btn-icono svg { width: 22px; height: 22px; fill: currentColor; }
+
+  .cabecera .titulo { display: grid; gap: 1px; }
+  .sobretitulo { margin: 0; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-suave); font-weight: 600; }
+
+  .contadores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 16px 0; }
+  .contador {
+    border: 1px solid var(--borde); background: var(--superficie); color: var(--texto); border-radius: var(--radio);
+    padding: 10px 8px; display: grid; gap: 2px; text-align: left; min-height: 56px; box-shadow: var(--sombra);
+  }
+  button.contador { cursor: pointer; }
+  .contador strong { font-size: 1.5rem; line-height: 1.1; font-weight: 700; }
+  .contador span { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-suave); }
+  .contador-principal { border-color: var(--primario); border-width: 2px; }
+  .contador-principal strong { color: var(--primario); }
+  .contador-peligro strong { color: var(--peligro); }
+  .contador[aria-pressed="true"] { background: var(--superficie-2); }
 
   .filtros { padding: 12px 16px 0; display: grid; gap: 8px; }
   .filtros input[type="search"] {
@@ -148,13 +164,17 @@
     flex: none; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 999px;
     color: #fff; background: var(--est-detectada); white-space: nowrap;
   }
-  .estado[data-estado="En curso"] { background: var(--est-en-curso); }
-  .estado[data-estado="Propuesta"] { background: var(--est-propuesta); }
+  .estado[data-estado="En trabajo"] { background: var(--est-en-trabajo); }
+  .estado[data-estado="Propuesta enviada"] { background: var(--est-propuesta); }
   .estado[data-estado="Ganada"] { background: var(--est-ganada); }
-  .estado[data-estado="Descartada"] { background: var(--est-descartada); }
+  .estado[data-estado="Parada"] { background: var(--est-parada); }
   .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.85rem; color: var(--texto-suave); }
   .meta .hito.vencida { color: var(--peligro); font-weight: 600; }
   .meta .hito.hoy { color: var(--texto); font-weight: 600; }
+  .siguiente { margin: 0; font-size: 0.9rem; color: var(--texto); }
+  .siguiente b { font-weight: 600; color: var(--texto-suave); }
+  .acciones-tarjeta { display: flex; }
+  .btn-avanzar { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; border-radius: 999px; background: var(--superficie-2); }
 
   .vacio { text-align: center; color: var(--texto-suave); padding: 48px 24px; }
   .vacio p { margin: 0 0 12px; }
@@ -201,7 +221,10 @@
 <body>
 
 <header class="cabecera">
-  <h1>Líneas de cuenta</h1>
+  <div class="titulo">
+    <p class="sobretitulo">Desarrollo de negocio</p>
+    <h1>Líneas de cuenta</h1>
+  </div>
   <div class="acciones">
     <button id="btn-nueva" class="btn btn-primario solo-escritorio" type="button">Nueva línea</button>
     <button id="btn-menu" class="btn btn-icono" type="button" aria-label="Opciones" title="Opciones">
@@ -209,6 +232,12 @@
     </button>
   </div>
 </header>
+
+<section id="contadores" class="contadores" aria-label="Resumen de líneas" hidden>
+  <button type="button" class="contador contador-principal" data-contador="abiertas" title="Ocultar o mostrar las cerradas"><strong id="n-abiertas">0</strong><span>abiertas</span></button>
+  <div class="contador"><strong id="n-semana">0</strong><span>vencen esta semana</span></div>
+  <button type="button" class="contador contador-peligro" data-contador="vencidas" title="Ver solo las vencidas"><strong id="n-vencidas">0</strong><span>vencidas</span></button>
+</section>
 
 <section class="filtros" aria-label="Filtros">
   <input id="f-texto" type="search" placeholder="Buscar por título, cuenta, origen o notas" autocomplete="off">
@@ -316,12 +345,14 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.0';
   const CLAVE = 'lineas-cuenta.v1';
   const CLAVE_TEMA = 'lineas-cuenta.tema';
   const CLAVE_FILTROS = 'lineas-cuenta.filtros';
-  const ESTADOS = ['Detectada', 'En curso', 'Propuesta', 'Ganada', 'Descartada'];
-  const CERRADOS = new Set(['Ganada', 'Descartada']);
+  const ESTADOS = ['Detectada', 'En trabajo', 'Propuesta enviada', 'Ganada', 'Parada'];
+  const CERRADOS = new Set(['Ganada', 'Parada']);
+  /* Nombres de estado de la versión 0.1.0: se migran al leer para no perder nada guardado. */
+  const ALIAS_ESTADOS = { 'En curso': 'En trabajo', 'Propuesta': 'Propuesta enviada', 'Descartada': 'Parada' };
 
   const $ = (selector, raiz = document) => raiz.querySelector(selector);
   const $$ = (selector, raiz = document) => Array.from(raiz.querySelectorAll(selector));
@@ -365,7 +396,8 @@
 
   function normalizarLinea(bruta) {
     const l = bruta && typeof bruta === 'object' ? bruta : {};
-    const estado = ESTADOS.includes(l.estado) ? l.estado : ESTADOS[0];
+    const estadoBruto = ALIAS_ESTADOS[l.estado] || l.estado;
+    const estado = ESTADOS.includes(estadoBruto) ? estadoBruto : ESTADOS[0];
     const hitoFecha = /^\d{4}-\d{2}-\d{2}$/.test(l.hitoFecha || '') ? l.hitoFecha : '';
     return {
       id: typeof l.id === 'string' && l.id ? l.id : uid(),
@@ -495,12 +527,32 @@
     datalist.innerHTML = valores.map((v) => '<option value="' + escapar(v) + '"></option>').join('');
   }
 
-  function textoHito(l) {
-    if (!l.hitoFecha) return l.hitoTexto ? 'Hito: ' + l.hitoTexto : '';
-    let prefijo = 'Hito ' + fechaCorta(l.hitoFecha);
-    if (esVencida(l)) prefijo = 'Vencida ' + fechaCorta(l.hitoFecha);
-    else if (venceHoy(l)) prefijo = 'Hoy';
-    return l.hitoTexto ? prefijo + ': ' + l.hitoTexto : prefijo;
+  const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  function fechaDiaMes(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return '';
+    return Number(iso.slice(8, 10)) + ' ' + MESES_CORTOS[Number(iso.slice(5, 7)) - 1];
+  }
+
+  /* Días desde hoy hasta la fecha del hito: negativo si ya pasó, null sin fecha. */
+  function diasHastaHito(l) {
+    if (!l.hitoFecha) return null;
+    const hoy = new Date(hoyISO() + 'T00:00:00');
+    const hito = new Date(l.hitoFecha + 'T00:00:00');
+    return Math.round((hito - hoy) / 86400000);
+  }
+
+  function venceEstaSemana(l) {
+    const dias = diasHastaHito(l);
+    return dias !== null && !esCerrada(l) && dias >= 0 && dias <= 6;
+  }
+
+  function textoRelativo(l) {
+    const dias = diasHastaHito(l);
+    if (dias === null || esCerrada(l)) return '';
+    if (dias < 0) return 'vencida hace ' + plural(-dias, 'día', 'días');
+    if (dias === 0) return 'vence hoy';
+    return 'en ' + plural(dias, 'día', 'días');
   }
 
   function tarjetaHTML(l) {
@@ -510,13 +562,22 @@
     if (esCerrada(l)) clases.push('cerrada');
     const claseHito = esVencida(l) ? 'hito vencida' : (venceHoy(l) ? 'hito hoy' : 'hito');
     const partes = [];
-    const hito = textoHito(l);
-    if (hito) partes.push('<span class="' + claseHito + '">' + escapar(hito) + '</span>');
+    if (l.hitoFecha) {
+      const relativo = textoRelativo(l);
+      partes.push('<span class="' + claseHito + '">' + escapar(fechaDiaMes(l.hitoFecha) + (relativo ? ' · ' + relativo : '')) + '</span>');
+    }
     if (l.responsable) partes.push('<span class="resp">' + escapar(l.responsable) + '</span>');
     if (l.origen) partes.push('<span class="origen">' + escapar(l.origen) + '</span>');
+    const siguiente = l.hitoTexto ? '<p class="siguiente"><b>Siguiente:</b> ' + escapar(l.hitoTexto) + '</p>' : '';
+    const puedeAvanzar = !esCerrada(l) && ESTADOS.indexOf(l.estado) < ESTADOS.indexOf('Ganada');
+    const avanzar = puedeAvanzar
+      ? '<div class="acciones-tarjeta"><button type="button" class="btn btn-avanzar" data-avanzar="' + escapar(l.id) + '">Avanzar</button></div>'
+      : '';
     return '<article class="' + clases.join(' ') + '" data-id="' + escapar(l.id) + '" tabindex="0" role="button" aria-label="' + escapar(l.titulo) + '">' +
       '<div class="fila"><h3>' + escapar(l.titulo) + '</h3><span class="estado" data-estado="' + escapar(l.estado) + '">' + escapar(l.estado) + '</span></div>' +
+      siguiente +
       (partes.length ? '<div class="meta">' + partes.join('') + '</div>' : '') +
+      avanzar +
       '</article>';
   }
 
@@ -546,13 +607,21 @@
       const lineas = grupos.get(nombre);
       const pendientes = lineas.filter(esPendiente).length;
       return '<section class="grupo" data-cuenta="' + escapar(nombre) + '">' +
-        '<h2><span>' + escapar(nombre) + '</span><span class="num">' + lineas.length + (pendientes ? ' (' + pendientes + ' pendientes)' : '') + '</span></h2>' +
+        '<h2><span>' + escapar(nombre) + '</span><span class="num">' + plural(lineas.length, 'línea', 'líneas') + (pendientes ? ' · ' + plural(pendientes, 'pendiente', 'pendientes') : '') + '</span></h2>' +
         '<div class="lista">' + lineas.map(tarjetaHTML).join('') + '</div>' +
         '</section>';
     }).join('');
 
     const total = datos.lineas.length;
     const pendientesTotal = datos.lineas.filter(esPendiente).length;
+    $('#contadores').hidden = total === 0;
+    $('#n-abiertas').textContent = datos.lineas.filter((l) => !esCerrada(l)).length;
+    $('#n-semana').textContent = datos.lineas.filter(venceEstaSemana).length;
+    $('#n-vencidas').textContent = datos.lineas.filter(esVencida).length;
+    $$('#contadores [data-contador]').forEach((caja) => {
+      const activo = (caja.dataset.contador === 'vencidas' && filtros.vencidas) || (caja.dataset.contador === 'abiertas' && filtros.ocultarCerradas);
+      caja.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
     const vacio = $('#vacio');
     if (total === 0) {
       vacio.hidden = false;
@@ -742,18 +811,39 @@
     if (datos.lineas.length && !confirm('Se añadirán líneas de ejemplo a las que ya tienes. Continuar?')) return;
     const ahora = ahoraISO();
     const ejemplo = [
-      { cuenta: 'Cuenta A', titulo: 'Renovación del soporte de la plataforma de red', estado: 'En curso', responsable: 'Ana', hitoFecha: fechaRelativa(-3), hitoTexto: 'Enviar propuesta de renovación', origen: 'Reunión 10/09 con dirección de operaciones' },
-      { cuenta: 'Cuenta A', titulo: 'Piloto de automatización del centro de operaciones', estado: 'Detectada', responsable: 'Ana', hitoFecha: fechaRelativa(0), hitoTexto: 'Llamada de cualificación', origen: 'Reunión 10/09 con dirección de operaciones' },
-      { cuenta: 'Cuenta B', titulo: 'Extensión del contrato de mantenimiento', estado: 'Propuesta', responsable: 'Luis', hitoFecha: fechaRelativa(6), hitoTexto: 'Respuesta a la propuesta', origen: 'Comité de seguimiento 03/09' },
-      { cuenta: 'Cuenta B', titulo: 'Nueva unidad de negocio interesada en analítica', estado: 'Detectada', responsable: '', hitoFecha: '', hitoTexto: '', origen: 'Comentario informal en el evento del sector' },
-      { cuenta: 'Cuenta C', titulo: 'Migración a la nube de la capa de facturación', estado: 'Ganada', responsable: 'Luis', hitoFecha: fechaRelativa(-10), hitoTexto: 'Firma', origen: 'Ciclo de oferta primavera' },
-      { cuenta: 'Cuenta C', titulo: 'Servicio gestionado de ciberseguridad', estado: 'Descartada', responsable: 'Ana', hitoFecha: '', hitoTexto: '', origen: 'Reunión 20/08', notas: 'Ya lo tienen contratado con otro proveedor hasta 2027.' }
+      { cuenta: 'América Móvil', titulo: 'Alianza B2B conjunta', estado: 'Detectada', responsable: 'KAM México', hitoFecha: fechaRelativa(-5), hitoTexto: 'Confirmar el patrocinador en el grupo', origen: 'Reunión del 10-09 con la dirección B2B' },
+      { cuenta: 'América Móvil', titulo: 'Soberanía digital y ciberseguridad', estado: 'Propuesta enviada', responsable: 'KAM México', hitoFecha: fechaRelativa(3), hitoTexto: 'Respuesta a la propuesta', origen: 'Comité de seguimiento del 08-09' },
+      { cuenta: 'América Móvil', titulo: 'Acuerdo de socio tecnológico multipaís', estado: 'En trabajo', responsable: 'KAM México', hitoFecha: fechaRelativa(12), hitoTexto: 'Propuesta de alcance para Brasil y Colombia', origen: 'Reunión del 03-09 con el CTO regional' },
+      { cuenta: 'América Móvil', titulo: 'Automatización del centro de operaciones de red', estado: 'Ganada', responsable: 'KAM México', hitoFecha: fechaRelativa(-20), hitoTexto: 'Arranque del proyecto', origen: 'Ciclo de oferta de primavera' },
+      { cuenta: 'Orange España', titulo: 'Modernización del BSS de empresas', estado: 'En trabajo', responsable: 'KAM España', hitoFecha: fechaRelativa(25), hitoTexto: 'Reunión de arquitectura con el CTO', origen: 'Reunión del 15-09 con el CTO' },
+      { cuenta: 'Orange España', titulo: 'Redes autónomas: piloto de operación sin intervención', estado: 'Detectada', responsable: 'KAM España', hitoFecha: fechaRelativa(0), hitoTexto: 'Sesión de descubrimiento con operaciones de red', origen: 'Casos de uso de IA presentados el 09-09' },
+      { cuenta: 'Telefónica', titulo: 'Agentes de IA para la atención al cliente de empresas', estado: 'Propuesta enviada', responsable: 'KAM España', hitoFecha: fechaRelativa(7), hitoTexto: 'Defensa de la propuesta ante el comité', origen: 'Reunión del 04-09 con transformación digital' },
+      { cuenta: 'Telefónica', titulo: 'Migración del núcleo de facturación a la nube', estado: 'Parada', responsable: 'KAM España', hitoFecha: '', hitoTexto: '', origen: 'Comité del 20-08', notas: 'Congelada hasta el presupuesto de 2027. Retomar en enero.' },
+      { cuenta: 'Vodafone', titulo: 'Renovación del soporte de la plataforma de red', estado: 'En trabajo', responsable: 'KAM España', hitoFecha: fechaRelativa(-2), hitoTexto: 'Enviar la propuesta de renovación', origen: 'Reunión del 11-09 con la dirección de operaciones' },
+      { cuenta: 'Vodafone', titulo: 'Cuadro de mando de calidad de servicio', estado: 'Detectada', responsable: 'KAM España', hitoFecha: fechaRelativa(18), hitoTexto: 'Demostración al equipo de calidad', origen: 'Conversación en el evento del sector del 12-09' },
+      { cuenta: 'Millicom Tigo', titulo: 'Plataforma de servicios financieros móviles', estado: 'En trabajo', responsable: 'KAM Colombia', hitoFecha: fechaRelativa(5), hitoTexto: 'Taller de requisitos con producto', origen: 'Reunión del 02-09 con la dirección de producto' },
+      { cuenta: 'Millicom Tigo', titulo: 'Consolidación del centro de datos regional', estado: 'Detectada', responsable: 'KAM Colombia', hitoFecha: '', hitoTexto: '', origen: 'Presentación del socio de infraestructura' }
     ].map((l) => normalizarLinea(Object.assign({ creada: ahora, actualizada: ahora, historial: [{ fecha: ahora, de: '', a: l.estado }] }, l)));
     datos.lineas = datos.lineas.concat(ejemplo);
     guardar();
     render();
     dlgMenu.close();
     toast('Cargadas ' + ejemplo.length + ' líneas de ejemplo');
+  }
+
+  /* Pasa la línea al siguiente estado de la lista hasta Ganada; nunca a Parada. */
+  function avanzarLinea(id) {
+    const l = datos.lineas.find((x) => x.id === id);
+    if (!l || esCerrada(l)) return;
+    const siguiente = ESTADOS[ESTADOS.indexOf(l.estado) + 1];
+    if (!siguiente || siguiente === 'Parada') return;
+    const ahora = ahoraISO();
+    l.historial = (l.historial || []).concat([{ fecha: ahora, de: l.estado, a: siguiente }]).slice(-20);
+    l.estado = siguiente;
+    l.actualizada = ahora;
+    guardar();
+    render();
+    toast('Línea en ' + siguiente);
   }
 
   function borrarTodo() {
@@ -788,13 +878,26 @@
     $('#btn-borrar').addEventListener('click', borrarLinea);
 
     $('#tablero').addEventListener('click', (evento) => {
+      const boton = evento.target.closest('[data-avanzar]');
+      if (boton) { evento.stopPropagation(); avanzarLinea(boton.dataset.avanzar); return; }
       const tarjeta = evento.target.closest('.tarjeta');
       if (tarjeta) abrirLinea(tarjeta.dataset.id);
     });
     $('#tablero').addEventListener('keydown', (evento) => {
       if (evento.key !== 'Enter' && evento.key !== ' ') return;
+      if (evento.target.closest('[data-avanzar]')) return;
       const tarjeta = evento.target.closest('.tarjeta');
       if (tarjeta) { evento.preventDefault(); abrirLinea(tarjeta.dataset.id); }
+    });
+
+    $('#contadores').addEventListener('click', (evento) => {
+      const caja = evento.target.closest('[data-contador]');
+      if (!caja) return;
+      if (caja.dataset.contador === 'vencidas') filtros.vencidas = !filtros.vencidas;
+      else if (caja.dataset.contador === 'abiertas') filtros.ocultarCerradas = !filtros.ocultarCerradas;
+      else return;
+      guardarFiltros();
+      render();
     });
 
     const alFiltrar = () => {

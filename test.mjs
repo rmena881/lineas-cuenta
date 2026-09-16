@@ -114,7 +114,7 @@ async function principal() {
     await pagina.waitForSelector('#dlg-linea[open]');
     await pagina.fill('#c-cuenta', 'Cuenta Prueba');
     await pagina.fill('#c-titulo', 'Línea uno de prueba');
-    await pagina.selectOption('#c-estado', 'En curso');
+    await pagina.selectOption('#c-estado', 'En trabajo');
     await pagina.fill('#c-resp', 'QA');
     await pagina.fill('#c-hito-fecha', fechaRelativa(5));
     await pagina.fill('#c-hito-texto', 'Hito futuro');
@@ -123,7 +123,7 @@ async function principal() {
     await pagina.waitForSelector('#dlg-linea[open]', { state: 'hidden' });
     comprobar('Crear línea: tarjeta visible', (await pagina.locator('.tarjeta').count()) === 1, await pagina.locator('.tarjeta').count());
     comprobar('Crear línea: agrupada por cuenta', (await pagina.locator('.grupo[data-cuenta="Cuenta Prueba"]').count()) === 1);
-    comprobar('Crear línea: estado en la tarjeta', (await pagina.locator('.tarjeta .estado').first().textContent()) === 'En curso');
+    comprobar('Crear línea: estado en la tarjeta', (await pagina.locator('.tarjeta .estado').first().textContent()) === 'En trabajo');
 
     // Validación: sin título no se guarda
     await pagina.click('#btn-fab');
@@ -160,6 +160,20 @@ async function principal() {
     await pagina.click('#btn-limpiar');
     comprobar('Limpiar filtros', (await pagina.locator('.tarjeta').count()) === 2);
 
+    // Contadores (v0.2.0): dos abiertas, una vence esta semana (en 5 días), una vencida
+    comprobar('Contadores: abiertas', (await pagina.locator('#n-abiertas').textContent()) === '2', await pagina.locator('#n-abiertas').textContent());
+    comprobar('Contadores: vencen esta semana', (await pagina.locator('#n-semana').textContent()) === '1', await pagina.locator('#n-semana').textContent());
+    comprobar('Contadores: vencidas', (await pagina.locator('#n-vencidas').textContent()) === '1', await pagina.locator('#n-vencidas').textContent());
+    const textoVencida = await pagina.locator('.tarjeta.vencida').textContent();
+    comprobar('Tarjeta: siguiente paso y fecha relativa', /Siguiente:/.test(textoVencida) && /vencida hace 2 días/.test(textoVencida), textoVencida);
+
+    // Avanzar (v0.2.0): la línea En trabajo pasa a Propuesta enviada sin abrir la hoja
+    await pagina.click('.grupo[data-cuenta="Cuenta Prueba"] [data-avanzar]');
+    const estadoAvanzado = await pagina.locator('.grupo[data-cuenta="Cuenta Prueba"] .estado').textContent();
+    comprobar('Avanzar: siguiente estado', estadoAvanzado === 'Propuesta enviada', estadoAvanzado);
+    comprobar('Avanzar: historial registrado', await pagina.evaluate(() => window.LineasCuenta.lineas().find((l) => l.cuenta === 'Cuenta Prueba').historial.length === 2));
+    comprobar('Avanzar: la hoja no se abre', (await pagina.locator('#dlg-linea[open]').count()) === 0);
+
     // Búsqueda por texto
     await pagina.fill('#f-texto', 'vencida');
     comprobar('Búsqueda por texto', (await pagina.locator('.tarjeta').count()) === 1);
@@ -183,6 +197,21 @@ async function principal() {
     // Persistencia
     await pagina.reload({ waitUntil: 'load' });
     comprobar('Persistencia tras recargar', (await pagina.locator('.tarjeta').count()) === 2, await pagina.locator('.tarjeta').count());
+
+    // Migración de estados antiguos (v0.1.0): Descartada pasa a Parada al leer
+    await pagina.evaluate(() => {
+      const d = JSON.parse(localStorage.getItem('lineas-cuenta.v1'));
+      d.lineas.push({ id: 'migracion-1', cuenta: 'Migrada', titulo: 'Estado antiguo', estado: 'Descartada' });
+      localStorage.setItem('lineas-cuenta.v1', JSON.stringify(d));
+    });
+    await pagina.reload({ waitUntil: 'load' });
+    comprobar('Migración de estados antiguos', await pagina.evaluate(() => window.LineasCuenta.lineas().find((l) => l.id === 'migracion-1').estado === 'Parada'));
+    await pagina.evaluate(() => {
+      const d = JSON.parse(localStorage.getItem('lineas-cuenta.v1'));
+      d.lineas = d.lineas.filter((l) => l.id !== 'migracion-1');
+      localStorage.setItem('lineas-cuenta.v1', JSON.stringify(d));
+    });
+    await pagina.reload({ waitUntil: 'load' });
 
     // Tema
     await pagina.click('#btn-menu');
