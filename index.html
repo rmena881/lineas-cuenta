@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1b4f72">
+<meta name="description" content="Tablero de líneas de trabajo por cuenta para el equipo comercial">
+<title>Líneas de cuenta</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Líneas">
+<style>
+  :root {
+    --fondo: #f6f7f9;
+    --superficie: #ffffff;
+    --superficie-2: #eef1f5;
+    --texto: #1c2430;
+    --texto-suave: #5b6675;
+    --borde: #d7dde6;
+    --primario: #1b4f72;
+    --primario-texto: #ffffff;
+    --acento: #f4b942;
+    --peligro: #b3261e;
+    --sombra: 0 1px 2px rgba(16, 24, 40, 0.08), 0 1px 6px rgba(16, 24, 40, 0.06);
+    --radio: 12px;
+    --est-detectada: #6b7280;
+    --est-en-curso: #1b6fb3;
+    --est-propuesta: #b7791f;
+    --est-ganada: #2e7d4f;
+    --est-descartada: #8a8f98;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --fondo: #0f1720;
+      --superficie: #17222e;
+      --superficie-2: #1f2c3a;
+      --texto: #e6ebf2;
+      --texto-suave: #9aa7b6;
+      --borde: #2c3a4a;
+      --primario: #4c8fc4;
+      --primario-texto: #0b1320;
+      --acento: #f4b942;
+      --peligro: #ff8a80;
+      --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --est-detectada: #9aa7b6;
+      --est-en-curso: #6fb1e6;
+      --est-propuesta: #e0a94a;
+      --est-ganada: #5fbf86;
+      --est-descartada: #7c8590;
+    }
+  }
+  :root[data-tema="oscuro"] {
+    --fondo: #0f1720;
+    --superficie: #17222e;
+    --superficie-2: #1f2c3a;
+    --texto: #e6ebf2;
+    --texto-suave: #9aa7b6;
+    --borde: #2c3a4a;
+    --primario: #4c8fc4;
+    --primario-texto: #0b1320;
+    --acento: #f4b942;
+    --peligro: #ff8a80;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --est-detectada: #9aa7b6;
+    --est-en-curso: #6fb1e6;
+    --est-propuesta: #e0a94a;
+    --est-ganada: #5fbf86;
+    --est-descartada: #7c8590;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--texto);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: env(safe-area-inset-bottom);
+    min-height: 100vh;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+
+  .cabecera {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    background: var(--superficie);
+    border-bottom: 1px solid var(--borde);
+  }
+  .cabecera h1 { font-size: 1.15rem; margin: 0; font-weight: 700; letter-spacing: 0.01em; }
+  .acciones { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    border: 1px solid var(--borde); background: var(--superficie); color: var(--texto);
+    border-radius: 10px; padding: 8px 12px; cursor: pointer; min-height: 40px;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primario { background: var(--primario); color: var(--primario-texto); border-color: var(--primario); font-weight: 600; }
+  .btn-peligro { color: var(--peligro); border-color: var(--peligro); background: transparent; }
+  .btn-texto { border: none; background: transparent; color: var(--primario); padding: 6px 8px; min-height: 32px; }
+  .btn-icono { width: 40px; padding: 0; display: inline-grid; place-items: center; }
+  .btn-icono svg { width: 22px; height: 22px; fill: currentColor; }
+
+  .filtros { padding: 12px 16px 0; display: grid; gap: 8px; }
+  .filtros input[type="search"] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px;
+    background: var(--superficie);
+  }
+  .fila-filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .fila-filtros select {
+    padding: 8px 10px; border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie);
+    max-width: 100%;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
+    border: 1px solid var(--borde); border-radius: 999px; background: var(--superficie); cursor: pointer;
+    user-select: none;
+  }
+  .chip:has(input:checked) { background: var(--primario); color: var(--primario-texto); border-color: var(--primario); }
+  .chip input { margin: 0; accent-color: var(--primario); }
+
+  .resumen { margin: 10px 16px 0; color: var(--texto-suave); font-size: 0.9rem; min-height: 1.2em; }
+
+  .tablero { padding: 8px 16px 96px; display: grid; gap: 18px; }
+  .grupo h2 {
+    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-suave);
+    margin: 4px 0 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  }
+  .grupo h2 .num { font-weight: 500; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+  .lista { display: grid; gap: 8px; }
+  .tarjeta {
+    background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+    padding: 12px 14px; box-shadow: var(--sombra); cursor: pointer; display: grid; gap: 6px;
+  }
+  .tarjeta:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+  .tarjeta.vencida { border-left: 4px solid var(--peligro); }
+  .tarjeta.hoy { border-left: 4px solid var(--acento); }
+  .tarjeta.cerrada { opacity: 0.72; }
+  .tarjeta .fila { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .tarjeta h3 { margin: 0; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+  .estado {
+    flex: none; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+    color: #fff; background: var(--est-detectada); white-space: nowrap;
+  }
+  .estado[data-estado="En curso"] { background: var(--est-en-curso); }
+  .estado[data-estado="Propuesta"] { background: var(--est-propuesta); }
+  .estado[data-estado="Ganada"] { background: var(--est-ganada); }
+  .estado[data-estado="Descartada"] { background: var(--est-descartada); }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.85rem; color: var(--texto-suave); }
+  .meta .hito.vencida { color: var(--peligro); font-weight: 600; }
+  .meta .hito.hoy { color: var(--texto); font-weight: 600; }
+
+  .vacio { text-align: center; color: var(--texto-suave); padding: 48px 24px; }
+  .vacio p { margin: 0 0 12px; }
+
+  dialog {
+    border: none; border-radius: 16px 16px 0 0; padding: 0; width: 100%; max-width: 640px;
+    background: var(--superficie); color: var(--texto); box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.25);
+    margin: auto 0 0; max-height: 92vh; overflow: auto;
+  }
+  @media (min-width: 700px) { dialog { border-radius: 16px; margin: auto; max-height: 88vh; } }
+  dialog::backdrop { background: rgba(10, 14, 20, 0.5); }
+  .hoja { padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 12px; }
+  .hoja h2 { margin: 0; font-size: 1.1rem; }
+  .campo { display: grid; gap: 4px; }
+  .campo label { font-size: 0.85rem; color: var(--texto-suave); }
+  .campo input, .campo select, .campo textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px;
+    background: var(--superficie-2);
+  }
+  .campo textarea { min-height: 80px; resize: vertical; }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 420px) { .dos { grid-template-columns: 1fr; } }
+  .pie { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+  .pie .izq { margin-right: auto; }
+  .historial { font-size: 0.8rem; color: var(--texto-suave); margin: 0; padding-left: 18px; }
+  .nota { font-size: 0.8rem; color: var(--texto-suave); margin: 0; }
+  .opciones { display: grid; gap: 6px; }
+  .opciones .btn { text-align: left; }
+  .tema { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: var(--texto); color: var(--fondo); padding: 10px 16px; border-radius: 999px;
+    font-size: 0.9rem; z-index: 20; max-width: calc(100% - 32px); text-align: center;
+  }
+  .fab {
+    position: fixed; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 6;
+    border-radius: 999px; padding: 12px 18px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+  @media (min-width: 700px) { .fab { display: none; } }
+  @media (max-width: 699px) { .solo-escritorio { display: none; } }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <h1>Líneas de cuenta</h1>
+  <div class="acciones">
+    <button id="btn-nueva" class="btn btn-primario solo-escritorio" type="button">Nueva línea</button>
+    <button id="btn-menu" class="btn btn-icono" type="button" aria-label="Opciones" title="Opciones">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="filtros" aria-label="Filtros">
+  <input id="f-texto" type="search" placeholder="Buscar por título, cuenta, origen o notas" autocomplete="off">
+  <div class="fila-filtros">
+    <select id="f-cuenta" aria-label="Filtrar por cuenta"><option value="">Todas las cuentas</option></select>
+    <select id="f-estado" aria-label="Filtrar por estado"><option value="">Todos los estados</option></select>
+    <select id="f-resp" aria-label="Filtrar por responsable"><option value="">Cualquier responsable</option></select>
+    <label class="chip"><input type="checkbox" id="f-vencidas"> Vencidas</label>
+    <label class="chip"><input type="checkbox" id="f-ocultar-cerradas"> Ocultar cerradas</label>
+    <button id="btn-limpiar" class="btn btn-texto" type="button" hidden>Limpiar filtros</button>
+  </div>
+</section>
+
+<p id="resumen" class="resumen" aria-live="polite"></p>
+
+<main id="tablero" class="tablero" aria-label="Tablero de líneas"></main>
+
+<div id="vacio" class="vacio" hidden>
+  <p id="vacio-texto">Todavía no hay líneas. Crea la primera o carga datos de ejemplo desde Opciones.</p>
+  <button id="btn-vacio-nueva" class="btn btn-primario" type="button">Nueva línea</button>
+</div>
+
+<button id="btn-fab" class="btn btn-primario fab" type="button" aria-label="Nueva línea">Nueva línea</button>
+
+<dialog id="dlg-linea" aria-labelledby="dlg-linea-titulo">
+  <form id="form-linea" class="hoja" novalidate>
+    <h2 id="dlg-linea-titulo">Nueva línea</h2>
+    <input type="hidden" id="c-id">
+    <div class="campo">
+      <label for="c-cuenta">Cuenta</label>
+      <input id="c-cuenta" list="lista-cuentas" required autocomplete="off" placeholder="Nombre de la cuenta">
+      <datalist id="lista-cuentas"></datalist>
+    </div>
+    <div class="campo">
+      <label for="c-titulo">Título de la línea</label>
+      <input id="c-titulo" required autocomplete="off" placeholder="Qué queremos conseguir en esta cuenta">
+    </div>
+    <div class="dos">
+      <div class="campo">
+        <label for="c-estado">Estado</label>
+        <select id="c-estado"></select>
+      </div>
+      <div class="campo">
+        <label for="c-resp">Responsable</label>
+        <input id="c-resp" list="lista-resp" autocomplete="off" placeholder="Quién la lleva">
+        <datalist id="lista-resp"></datalist>
+      </div>
+    </div>
+    <div class="dos">
+      <div class="campo">
+        <label for="c-hito-fecha">Fecha del próximo hito</label>
+        <input id="c-hito-fecha" type="date">
+      </div>
+      <div class="campo">
+        <label for="c-hito-texto">Hito</label>
+        <input id="c-hito-texto" autocomplete="off" placeholder="Qué tiene que pasar en esa fecha">
+      </div>
+    </div>
+    <div class="campo">
+      <label for="c-origen">Origen</label>
+      <input id="c-origen" autocomplete="off" placeholder="Reunión, fecha y con quién">
+    </div>
+    <div class="campo">
+      <label for="c-notas">Notas</label>
+      <textarea id="c-notas" placeholder="Contexto breve. Sin importes ni documentos."></textarea>
+    </div>
+    <p id="c-fechas" class="nota" hidden></p>
+    <ul id="c-historial" class="historial" hidden></ul>
+    <div class="pie">
+      <button id="btn-borrar" class="btn btn-peligro izq" type="button" hidden>Eliminar</button>
+      <button id="btn-cancelar" class="btn" type="button">Cancelar</button>
+      <button id="btn-guardar" class="btn btn-primario" type="submit">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-menu" aria-labelledby="dlg-menu-titulo">
+  <div class="hoja">
+    <h2 id="dlg-menu-titulo">Opciones</h2>
+    <div class="campo">
+      <label id="tema-etiqueta">Tema</label>
+      <div class="tema" role="radiogroup" aria-labelledby="tema-etiqueta">
+        <label class="chip"><input type="radio" name="tema" value="auto"> Automático</label>
+        <label class="chip"><input type="radio" name="tema" value="claro"> Claro</label>
+        <label class="chip"><input type="radio" name="tema" value="oscuro"> Oscuro</label>
+      </div>
+    </div>
+    <div class="opciones">
+      <button id="op-exportar" class="btn" type="button">Exportar copia (JSON)</button>
+      <button id="op-importar" class="btn" type="button">Importar copia (JSON)</button>
+      <input id="op-fichero" type="file" accept="application/json,.json" hidden>
+      <button id="op-ejemplo" class="btn" type="button">Cargar datos de ejemplo</button>
+      <button id="op-borrar" class="btn btn-peligro" type="button">Borrar todas las líneas</button>
+    </div>
+    <p class="nota" id="acerca"></p>
+    <div class="pie">
+      <button id="btn-cerrar-menu" class="btn" type="button">Cerrar</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const VERSION = '0.1.0';
+  const CLAVE = 'lineas-cuenta.v1';
+  const CLAVE_TEMA = 'lineas-cuenta.tema';
+  const CLAVE_FILTROS = 'lineas-cuenta.filtros';
+  const ESTADOS = ['Detectada', 'En curso', 'Propuesta', 'Ganada', 'Descartada'];
+  const CERRADOS = new Set(['Ganada', 'Descartada']);
+
+  const $ = (selector, raiz = document) => raiz.querySelector(selector);
+  const $$ = (selector, raiz = document) => Array.from(raiz.querySelectorAll(selector));
+
+  /* ---------- Utilidades ---------- */
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function hoyISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function ahoraISO() { return new Date().toISOString(); }
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  function escapar(texto) {
+    return String(texto == null ? '' : texto)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function fechaCorta(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return '';
+    return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4);
+  }
+
+  function fechaHora(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function limpiar(texto) { return String(texto == null ? '' : texto).trim().replace(/\s+/g, ' '); }
+
+  function comparaTexto(a, b) { return String(a).localeCompare(String(b), 'es', { sensitivity: 'base' }); }
+
+  /* ---------- Datos ---------- */
+
+  function normalizarLinea(bruta) {
+    const l = bruta && typeof bruta === 'object' ? bruta : {};
+    const estado = ESTADOS.includes(l.estado) ? l.estado : ESTADOS[0];
+    const hitoFecha = /^\d{4}-\d{2}-\d{2}$/.test(l.hitoFecha || '') ? l.hitoFecha : '';
+    return {
+      id: typeof l.id === 'string' && l.id ? l.id : uid(),
+      cuenta: limpiar(l.cuenta) || 'Sin cuenta',
+      titulo: limpiar(l.titulo) || 'Sin título',
+      estado,
+      responsable: limpiar(l.responsable),
+      hitoFecha,
+      hitoTexto: limpiar(l.hitoTexto),
+      origen: limpiar(l.origen),
+      notas: String(l.notas == null ? '' : l.notas).trim(),
+      creada: l.creada || ahoraISO(),
+      actualizada: l.actualizada || l.creada || ahoraISO(),
+      historial: Array.isArray(l.historial) ? l.historial.filter((h) => h && h.a).slice(-20) : []
+    };
+  }
+
+  function datosVacios() { return { version: 1, lineas: [] }; }
+
+  function cargar() {
+    try {
+      const bruto = localStorage.getItem(CLAVE);
+      if (!bruto) return datosVacios();
+      const obj = JSON.parse(bruto);
+      if (!obj || !Array.isArray(obj.lineas)) return datosVacios();
+      return { version: 1, lineas: obj.lineas.map(normalizarLinea) };
+    } catch (error) {
+      console.warn('No se pudieron leer los datos guardados', error);
+      return datosVacios();
+    }
+  }
+
+  function guardar() {
+    try {
+      localStorage.setItem(CLAVE, JSON.stringify(datos));
+      return true;
+    } catch (error) {
+      console.warn('No se pudo guardar', error);
+      toast('No se pudo guardar en este navegador');
+      return false;
+    }
+  }
+
+  function filtrosVacios() {
+    return { texto: '', cuenta: '', estado: '', responsable: '', vencidas: false, ocultarCerradas: false };
+  }
+
+  function cargarFiltros() {
+    const base = filtrosVacios();
+    try {
+      const obj = JSON.parse(sessionStorage.getItem(CLAVE_FILTROS) || 'null');
+      return obj && typeof obj === 'object' ? Object.assign(base, obj) : base;
+    } catch (error) {
+      return base;
+    }
+  }
+
+  function guardarFiltros() {
+    try { sessionStorage.setItem(CLAVE_FILTROS, JSON.stringify(filtros)); } catch (error) { /* sin sesión, sin problema */ }
+  }
+
+  let datos = cargar();
+  let filtros = cargarFiltros();
+
+  function esCerrada(l) { return CERRADOS.has(l.estado); }
+  function esVencida(l) { return !!l.hitoFecha && l.hitoFecha < hoyISO() && !esCerrada(l); }
+  function venceHoy(l) { return !!l.hitoFecha && l.hitoFecha === hoyISO() && !esCerrada(l); }
+  function esPendiente(l) { return esVencida(l) || venceHoy(l); }
+
+  function cuentas() {
+    return Array.from(new Set(datos.lineas.map((l) => l.cuenta))).sort(comparaTexto);
+  }
+
+  function responsables() {
+    return Array.from(new Set(datos.lineas.map((l) => l.responsable).filter(Boolean))).sort(comparaTexto);
+  }
+
+  function lineasFiltradas() {
+    const texto = limpiar(filtros.texto).toLowerCase();
+    return datos.lineas.filter((l) => {
+      if (filtros.cuenta && l.cuenta !== filtros.cuenta) return false;
+      if (filtros.estado && l.estado !== filtros.estado) return false;
+      if (filtros.responsable && l.responsable !== filtros.responsable) return false;
+      if (filtros.vencidas && !esPendiente(l)) return false;
+      if (filtros.ocultarCerradas && esCerrada(l)) return false;
+      if (texto) {
+        const pajar = [l.titulo, l.cuenta, l.origen, l.notas, l.responsable, l.hitoTexto].join(' ').toLowerCase();
+        if (!pajar.includes(texto)) return false;
+      }
+      return true;
+    });
+  }
+
+  function ordenar(a, b) {
+    const pa = esPendiente(a) ? 0 : 1;
+    const pb = esPendiente(b) ? 0 : 1;
+    if (pa !== pb) return pa - pb;
+    const ca = esCerrada(a) ? 1 : 0;
+    const cb = esCerrada(b) ? 1 : 0;
+    if (ca !== cb) return ca - cb;
+    if (a.hitoFecha && b.hitoFecha && a.hitoFecha !== b.hitoFecha) return a.hitoFecha < b.hitoFecha ? -1 : 1;
+    if (a.hitoFecha && !b.hitoFecha) return -1;
+    if (!a.hitoFecha && b.hitoFecha) return 1;
+    return a.actualizada < b.actualizada ? 1 : -1;
+  }
+
+  function hayFiltros() {
+    return !!(filtros.texto || filtros.cuenta || filtros.estado || filtros.responsable || filtros.vencidas || filtros.ocultarCerradas);
+  }
+
+  /* ---------- Render ---------- */
+
+  function rellenarSelect(select, valores, seleccionado) {
+    const primera = select.options[0];
+    select.innerHTML = '';
+    select.appendChild(primera);
+    valores.forEach((v) => {
+      const opcion = document.createElement('option');
+      opcion.value = v;
+      opcion.textContent = v;
+      select.appendChild(opcion);
+    });
+    select.value = valores.includes(seleccionado) ? seleccionado : '';
+  }
+
+  function rellenarDatalist(datalist, valores) {
+    datalist.innerHTML = valores.map((v) => '<option value="' + escapar(v) + '"></option>').join('');
+  }
+
+  function textoHito(l) {
+    if (!l.hitoFecha) return l.hitoTexto ? 'Hito: ' + l.hitoTexto : '';
+    let prefijo = 'Hito ' + fechaCorta(l.hitoFecha);
+    if (esVencida(l)) prefijo = 'Vencida ' + fechaCorta(l.hitoFecha);
+    else if (venceHoy(l)) prefijo = 'Hoy';
+    return l.hitoTexto ? prefijo + ': ' + l.hitoTexto : prefijo;
+  }
+
+  function tarjetaHTML(l) {
+    const clases = ['tarjeta'];
+    if (esVencida(l)) clases.push('vencida');
+    else if (venceHoy(l)) clases.push('hoy');
+    if (esCerrada(l)) clases.push('cerrada');
+    const claseHito = esVencida(l) ? 'hito vencida' : (venceHoy(l) ? 'hito hoy' : 'hito');
+    const partes = [];
+    const hito = textoHito(l);
+    if (hito) partes.push('<span class="' + claseHito + '">' + escapar(hito) + '</span>');
+    if (l.responsable) partes.push('<span class="resp">' + escapar(l.responsable) + '</span>');
+    if (l.origen) partes.push('<span class="origen">' + escapar(l.origen) + '</span>');
+    return '<article class="' + clases.join(' ') + '" data-id="' + escapar(l.id) + '" tabindex="0" role="button" aria-label="' + escapar(l.titulo) + '">' +
+      '<div class="fila"><h3>' + escapar(l.titulo) + '</h3><span class="estado" data-estado="' + escapar(l.estado) + '">' + escapar(l.estado) + '</span></div>' +
+      (partes.length ? '<div class="meta">' + partes.join('') + '</div>' : '') +
+      '</article>';
+  }
+
+  function plural(n, singular, pluralTexto) { return n + ' ' + (n === 1 ? singular : pluralTexto); }
+
+  function render() {
+    rellenarSelect($('#f-cuenta'), cuentas(), filtros.cuenta);
+    rellenarSelect($('#f-resp'), responsables(), filtros.responsable);
+    filtros.cuenta = $('#f-cuenta').value;
+    filtros.responsable = $('#f-resp').value;
+    $('#f-estado').value = filtros.estado;
+    $('#f-texto').value = filtros.texto;
+    $('#f-vencidas').checked = filtros.vencidas;
+    $('#f-ocultar-cerradas').checked = filtros.ocultarCerradas;
+    $('#btn-limpiar').hidden = !hayFiltros();
+
+    const visibles = lineasFiltradas().sort(ordenar);
+    const grupos = new Map();
+    visibles.forEach((l) => {
+      if (!grupos.has(l.cuenta)) grupos.set(l.cuenta, []);
+      grupos.get(l.cuenta).push(l);
+    });
+    const nombres = Array.from(grupos.keys()).sort(comparaTexto);
+
+    const tablero = $('#tablero');
+    tablero.innerHTML = nombres.map((nombre) => {
+      const lineas = grupos.get(nombre);
+      const pendientes = lineas.filter(esPendiente).length;
+      return '<section class="grupo" data-cuenta="' + escapar(nombre) + '">' +
+        '<h2><span>' + escapar(nombre) + '</span><span class="num">' + lineas.length + (pendientes ? ' (' + pendientes + ' pendientes)' : '') + '</span></h2>' +
+        '<div class="lista">' + lineas.map(tarjetaHTML).join('') + '</div>' +
+        '</section>';
+    }).join('');
+
+    const total = datos.lineas.length;
+    const pendientesTotal = datos.lineas.filter(esPendiente).length;
+    const vacio = $('#vacio');
+    if (total === 0) {
+      vacio.hidden = false;
+      $('#vacio-texto').textContent = 'Todavía no hay líneas. Crea la primera o carga datos de ejemplo desde Opciones.';
+      $('#btn-vacio-nueva').hidden = false;
+    } else if (visibles.length === 0) {
+      vacio.hidden = false;
+      $('#vacio-texto').textContent = 'Ninguna línea coincide con los filtros.';
+      $('#btn-vacio-nueva').hidden = true;
+    } else {
+      vacio.hidden = true;
+    }
+
+    let resumen = '';
+    if (total > 0) {
+      resumen = hayFiltros()
+        ? visibles.length + ' de ' + plural(total, 'línea', 'líneas') + ' en ' + plural(nombres.length, 'cuenta', 'cuentas')
+        : plural(total, 'línea', 'líneas') + ' en ' + plural(nombres.length, 'cuenta', 'cuentas');
+      if (pendientesTotal) resumen += ', ' + plural(pendientesTotal, 'pendiente de hito', 'pendientes de hito');
+    }
+    $('#resumen').textContent = resumen;
+  }
+
+  /* ---------- Hoja de línea ---------- */
+
+  const dlgLinea = $('#dlg-linea');
+  const form = $('#form-linea');
+
+  function rellenarEstados() {
+    const select = $('#c-estado');
+    select.innerHTML = ESTADOS.map((e) => '<option value="' + escapar(e) + '">' + escapar(e) + '</option>').join('');
+    const filtro = $('#f-estado');
+    ESTADOS.forEach((e) => {
+      const opcion = document.createElement('option');
+      opcion.value = e;
+      opcion.textContent = e;
+      filtro.appendChild(opcion);
+    });
+  }
+
+  function abrirLinea(id, valoresIniciales) {
+    const l = id ? datos.lineas.find((x) => x.id === id) : null;
+    rellenarDatalist($('#lista-cuentas'), cuentas());
+    rellenarDatalist($('#lista-resp'), responsables());
+    $('#dlg-linea-titulo').textContent = l ? 'Editar línea' : 'Nueva línea';
+    $('#c-id').value = l ? l.id : '';
+    $('#c-cuenta').value = l ? l.cuenta : ((valoresIniciales && valoresIniciales.cuenta) || filtros.cuenta || '');
+    $('#c-titulo').value = l ? l.titulo : '';
+    $('#c-estado').value = l ? l.estado : ESTADOS[0];
+    $('#c-resp').value = l ? l.responsable : '';
+    $('#c-hito-fecha').value = l ? l.hitoFecha : '';
+    $('#c-hito-texto').value = l ? l.hitoTexto : '';
+    $('#c-origen').value = l ? l.origen : '';
+    $('#c-notas').value = l ? l.notas : '';
+    $('#btn-borrar').hidden = !l;
+    const fechas = $('#c-fechas');
+    if (l) {
+      fechas.hidden = false;
+      fechas.textContent = 'Creada ' + fechaHora(l.creada) + '. Actualizada ' + fechaHora(l.actualizada) + '.';
+    } else {
+      fechas.hidden = true;
+    }
+    const historial = $('#c-historial');
+    if (l && l.historial.length) {
+      historial.hidden = false;
+      historial.innerHTML = l.historial.slice().reverse().map((h) =>
+        '<li>' + escapar(fechaHora(h.fecha)) + ': ' + escapar(h.de || 'nueva') + ' a ' + escapar(h.a) + '</li>').join('');
+    } else {
+      historial.hidden = true;
+      historial.innerHTML = '';
+    }
+    dlgLinea.showModal();
+    const foco = l ? $('#c-titulo') : ($('#c-cuenta').value ? $('#c-titulo') : $('#c-cuenta'));
+    setTimeout(() => foco.focus(), 50);
+  }
+
+  function guardarLinea(evento) {
+    evento.preventDefault();
+    const cuenta = limpiar($('#c-cuenta').value);
+    const titulo = limpiar($('#c-titulo').value);
+    if (!cuenta) { $('#c-cuenta').focus(); toast('Falta la cuenta'); return; }
+    if (!titulo) { $('#c-titulo').focus(); toast('Falta el título'); return; }
+    const id = $('#c-id').value;
+    const existente = id ? datos.lineas.find((x) => x.id === id) : null;
+    const estado = $('#c-estado').value;
+    const ahora = ahoraISO();
+    const nueva = normalizarLinea({
+      id: existente ? existente.id : undefined,
+      cuenta,
+      titulo,
+      estado,
+      responsable: $('#c-resp').value,
+      hitoFecha: $('#c-hito-fecha').value,
+      hitoTexto: $('#c-hito-texto').value,
+      origen: $('#c-origen').value,
+      notas: $('#c-notas').value,
+      creada: existente ? existente.creada : ahora,
+      actualizada: ahora,
+      historial: existente ? existente.historial.slice() : []
+    });
+    if (!existente) {
+      nueva.historial.push({ fecha: ahora, de: '', a: estado });
+      datos.lineas.push(nueva);
+    } else {
+      if (existente.estado !== estado) nueva.historial.push({ fecha: ahora, de: existente.estado, a: estado });
+      datos.lineas[datos.lineas.indexOf(existente)] = nueva;
+    }
+    guardar();
+    dlgLinea.close();
+    render();
+    toast(existente ? 'Línea actualizada' : 'Línea creada en ' + nueva.cuenta);
+  }
+
+  function borrarLinea() {
+    const id = $('#c-id').value;
+    const l = datos.lineas.find((x) => x.id === id);
+    if (!l) return;
+    if (!confirm('Eliminar la línea "' + l.titulo + '"? No se puede deshacer.')) return;
+    datos.lineas = datos.lineas.filter((x) => x.id !== id);
+    guardar();
+    dlgLinea.close();
+    render();
+    toast('Línea eliminada');
+  }
+
+  /* ---------- Menú ---------- */
+
+  const dlgMenu = $('#dlg-menu');
+
+  function aplicarTema(valor) {
+    const raiz = document.documentElement;
+    const fijo = valor === 'claro' || valor === 'oscuro';
+    if (fijo) raiz.dataset.tema = valor;
+    else delete raiz.dataset.tema;
+    try {
+      if (fijo) localStorage.setItem(CLAVE_TEMA, valor);
+      else localStorage.removeItem(CLAVE_TEMA);
+    } catch (error) { /* sin almacenamiento */ }
+    $$('input[name="tema"]').forEach((r) => { r.checked = r.value === (fijo ? valor : 'auto'); });
+  }
+
+  function temaGuardado() {
+    try { return localStorage.getItem(CLAVE_TEMA) || 'auto'; } catch (error) { return 'auto'; }
+  }
+
+  function exportar() {
+    const contenido = JSON.stringify({ app: 'lineas-cuenta', version: 1, exportado: ahoraISO(), lineas: datos.lineas }, null, 2);
+    const blob = new Blob([contenido], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = 'lineas-cuenta-' + hoyISO() + '.json';
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Copia exportada');
+  }
+
+  function importarTexto(texto) {
+    let obj;
+    try { obj = JSON.parse(texto); } catch (error) { toast('El fichero no es un JSON válido'); return; }
+    const lista = Array.isArray(obj) ? obj : (obj && Array.isArray(obj.lineas) ? obj.lineas : null);
+    if (!lista) { toast('El fichero no contiene líneas'); return; }
+    const nuevas = lista.map(normalizarLinea);
+    const actuales = new Map(datos.lineas.map((l) => [l.id, l]));
+    let anadidas = 0;
+    let actualizadas = 0;
+    nuevas.forEach((l) => {
+      if (actuales.has(l.id)) actualizadas += 1; else anadidas += 1;
+      actuales.set(l.id, l);
+    });
+    datos.lineas = Array.from(actuales.values());
+    guardar();
+    render();
+    dlgMenu.close();
+    toast('Importadas ' + anadidas + ' nuevas y ' + actualizadas + ' actualizadas');
+  }
+
+  function fechaRelativa(dias) {
+    const d = new Date();
+    d.setDate(d.getDate() + dias);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function cargarEjemplo() {
+    if (datos.lineas.length && !confirm('Se añadirán líneas de ejemplo a las que ya tienes. Continuar?')) return;
+    const ahora = ahoraISO();
+    const ejemplo = [
+      { cuenta: 'Cuenta A', titulo: 'Renovación del soporte de la plataforma de red', estado: 'En curso', responsable: 'Ana', hitoFecha: fechaRelativa(-3), hitoTexto: 'Enviar propuesta de renovación', origen: 'Reunión 10/09 con dirección de operaciones' },
+      { cuenta: 'Cuenta A', titulo: 'Piloto de automatización del centro de operaciones', estado: 'Detectada', responsable: 'Ana', hitoFecha: fechaRelativa(0), hitoTexto: 'Llamada de cualificación', origen: 'Reunión 10/09 con dirección de operaciones' },
+      { cuenta: 'Cuenta B', titulo: 'Extensión del contrato de mantenimiento', estado: 'Propuesta', responsable: 'Luis', hitoFecha: fechaRelativa(6), hitoTexto: 'Respuesta a la propuesta', origen: 'Comité de seguimiento 03/09' },
+      { cuenta: 'Cuenta B', titulo: 'Nueva unidad de negocio interesada en analítica', estado: 'Detectada', responsable: '', hitoFecha: '', hitoTexto: '', origen: 'Comentario informal en el evento del sector' },
+      { cuenta: 'Cuenta C', titulo: 'Migración a la nube de la capa de facturación', estado: 'Ganada', responsable: 'Luis', hitoFecha: fechaRelativa(-10), hitoTexto: 'Firma', origen: 'Ciclo de oferta primavera' },
+      { cuenta: 'Cuenta C', titulo: 'Servicio gestionado de ciberseguridad', estado: 'Descartada', responsable: 'Ana', hitoFecha: '', hitoTexto: '', origen: 'Reunión 20/08', notas: 'Ya lo tienen contratado con otro proveedor hasta 2027.' }
+    ].map((l) => normalizarLinea(Object.assign({ creada: ahora, actualizada: ahora, historial: [{ fecha: ahora, de: '', a: l.estado }] }, l)));
+    datos.lineas = datos.lineas.concat(ejemplo);
+    guardar();
+    render();
+    dlgMenu.close();
+    toast('Cargadas ' + ejemplo.length + ' líneas de ejemplo');
+  }
+
+  function borrarTodo() {
+    if (!datos.lineas.length) { toast('No hay nada que borrar'); return; }
+    if (!confirm('Borrar las ' + datos.lineas.length + ' líneas de este dispositivo? Exporta una copia antes si la necesitas.')) return;
+    datos = datosVacios();
+    guardar();
+    render();
+    dlgMenu.close();
+    toast('Todas las líneas borradas');
+  }
+
+  /* ---------- Toast ---------- */
+
+  let temporizadorToast = null;
+  function toast(mensaje) {
+    const t = $('#toast');
+    t.textContent = mensaje;
+    t.hidden = false;
+    clearTimeout(temporizadorToast);
+    temporizadorToast = setTimeout(() => { t.hidden = true; }, 2500);
+  }
+
+  /* ---------- Eventos ---------- */
+
+  function enlazar() {
+    $('#btn-nueva').addEventListener('click', () => abrirLinea(null));
+    $('#btn-fab').addEventListener('click', () => abrirLinea(null));
+    $('#btn-vacio-nueva').addEventListener('click', () => abrirLinea(null));
+    form.addEventListener('submit', guardarLinea);
+    $('#btn-cancelar').addEventListener('click', () => dlgLinea.close());
+    $('#btn-borrar').addEventListener('click', borrarLinea);
+
+    $('#tablero').addEventListener('click', (evento) => {
+      const tarjeta = evento.target.closest('.tarjeta');
+      if (tarjeta) abrirLinea(tarjeta.dataset.id);
+    });
+    $('#tablero').addEventListener('keydown', (evento) => {
+      if (evento.key !== 'Enter' && evento.key !== ' ') return;
+      const tarjeta = evento.target.closest('.tarjeta');
+      if (tarjeta) { evento.preventDefault(); abrirLinea(tarjeta.dataset.id); }
+    });
+
+    const alFiltrar = () => {
+      filtros.texto = $('#f-texto').value;
+      filtros.cuenta = $('#f-cuenta').value;
+      filtros.estado = $('#f-estado').value;
+      filtros.responsable = $('#f-resp').value;
+      filtros.vencidas = $('#f-vencidas').checked;
+      filtros.ocultarCerradas = $('#f-ocultar-cerradas').checked;
+      guardarFiltros();
+      render();
+    };
+    $('#f-texto').addEventListener('input', alFiltrar);
+    ['#f-cuenta', '#f-estado', '#f-resp', '#f-vencidas', '#f-ocultar-cerradas'].forEach((s) => $(s).addEventListener('change', alFiltrar));
+    $('#btn-limpiar').addEventListener('click', () => {
+      filtros = filtrosVacios();
+      guardarFiltros();
+      render();
+    });
+
+    $('#btn-menu').addEventListener('click', () => dlgMenu.showModal());
+    $('#btn-cerrar-menu').addEventListener('click', () => dlgMenu.close());
+    $$('input[name="tema"]').forEach((r) => r.addEventListener('change', () => aplicarTema(r.value)));
+    $('#op-exportar').addEventListener('click', exportar);
+    $('#op-importar').addEventListener('click', () => $('#op-fichero').click());
+    $('#op-fichero').addEventListener('change', (evento) => {
+      const fichero = evento.target.files && evento.target.files[0];
+      if (!fichero) return;
+      fichero.text().then(importarTexto).catch(() => toast('No se pudo leer el fichero'));
+      evento.target.value = '';
+    });
+    $('#op-ejemplo').addEventListener('click', cargarEjemplo);
+    $('#op-borrar').addEventListener('click', borrarTodo);
+
+    [dlgLinea, dlgMenu].forEach((dlg) => {
+      dlg.addEventListener('click', (evento) => {
+        if (evento.target === dlg) dlg.close();
+      });
+      dlg.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Escape' && dlg.open) { evento.preventDefault(); dlg.close(); }
+      });
+    });
+
+    window.addEventListener('storage', (evento) => {
+      if (evento.key === CLAVE) { datos = cargar(); render(); }
+    });
+  }
+
+  function registrarServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (location.protocol !== 'https:' && !local) return;
+    navigator.serviceWorker.register('sw.js').catch((error) => console.warn('Service worker no registrado', error));
+  }
+
+  /* ---------- Arranque ---------- */
+
+  rellenarEstados();
+  aplicarTema(temaGuardado());
+  enlazar();
+  render();
+  $('#acerca').textContent = 'Líneas de cuenta v' + VERSION + '. Los datos se guardan solo en este dispositivo.';
+  registrarServiceWorker();
+
+  window.LineasCuenta = {
+    version: VERSION,
+    estados: ESTADOS.slice(),
+    lineas: () => datos.lineas.map((l) => Object.assign({}, l)),
+    filtros: () => Object.assign({}, filtros)
+  };
+})();
+</script>
+</body>
+</html>

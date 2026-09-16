@@ -1,0 +1,13 @@
+{
+  "name": "lineas-cuenta",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tablero de líneas de trabajo por cuenta. App estática de un solo fichero, sin dependencias en ejecución.",
+  "scripts": {
+    "serve": "python -m http.server 8765",
+    "test": "node test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
