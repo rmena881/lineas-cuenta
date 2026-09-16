@@ -1,6 +1,6 @@
 # SPEC: Líneas de cuenta
 
-Versión 0.2.0. Tablero personal de líneas de trabajo por cuenta, pensado para abrirse desde el móvil en cualquier momento (antes de una reunión, al salir de ella, en el pasillo).
+Versión 0.2.1. Tablero personal de líneas de trabajo por cuenta, pensado para abrirse desde el móvil en cualquier momento (antes de una reunión, al salir de ella, en el pasillo).
 
 ## Para quién y para qué
 
@@ -49,7 +49,8 @@ Los datos se guardan en `localStorage` con la clave `lineas-cuenta.v1` como `{ v
 - Dentro de cada cuenta el orden es: pendientes de hito primero, después abiertas, después cerradas; a igualdad, por fecha de hito ascendente (las que no tienen fecha, al final) y por última actualización.
 - Cada tarjeta muestra: título, etiqueta de estado con color, "Siguiente: ..." con el texto del hito, la fecha del hito en corto ("10 sep") con su distancia ("vencida hace 5 días" en rojo, "vence hoy" destacado, "en 3 días"), responsable, origen y, en las líneas que aún no están en Ganada ni cerradas, un botón **Avanzar** que pasa la línea al siguiente estado (Detectada, En trabajo, Propuesta enviada, Ganada) registrándolo en el historial, sin abrir la hoja. Las vencidas llevan un borde rojo a la izquierda; las que vencen hoy, ámbar; las cerradas se ven atenuadas.
 - Tocar una tarjeta (o pulsar Intro sobre ella) abre su hoja de edición.
-- Sin líneas, el tablero muestra un mensaje con un botón para crear la primera. Si hay líneas pero ninguna pasa los filtros, lo dice.
+- Sin líneas, el tablero muestra un mensaje con dos botones: crear la primera y cargar los datos de ejemplo. Si hay líneas pero ninguna pasa los filtros, lo dice.
+- Enlace de demo: si la URL lleva `?ejemplo` y el dispositivo no tiene líneas, se cargan los datos de ejemplo al arrancar y el parámetro se retira de la URL.
 
 ## Hoja de línea (crear y editar)
 

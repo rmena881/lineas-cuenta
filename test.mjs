@@ -247,6 +247,18 @@ async function principal() {
     await pagina.waitForSelector('#dlg-linea[open]', { state: 'hidden' });
     comprobar('Eliminar línea', (await pagina.locator('.tarjeta').count()) === 1);
 
+    // Estado vacío con botón de ejemplo y enlace de demo ?ejemplo (v0.2.1)
+    await pagina.evaluate(() => localStorage.removeItem('lineas-cuenta.v1'));
+    await pagina.reload({ waitUntil: 'load' });
+    comprobar('Estado vacío: botón de datos de ejemplo visible', await pagina.locator('#btn-vacio-ejemplo').isVisible());
+    await pagina.click('#btn-vacio-ejemplo');
+    comprobar('Datos de ejemplo: doce líneas en cinco cuentas', (await pagina.locator('.tarjeta').count()) === 12 && (await pagina.locator('.grupo').count()) === 5, await pagina.locator('.tarjeta').count());
+    comprobar('Datos de ejemplo: contadores', (await pagina.locator('#n-abiertas').textContent()) === '10' && (await pagina.locator('#n-semana').textContent()) === '3' && (await pagina.locator('#n-vencidas').textContent()) === '2');
+    await pagina.evaluate(() => localStorage.removeItem('lineas-cuenta.v1'));
+    await pagina.goto(new URL('?ejemplo', pagina.url()).toString(), { waitUntil: 'load' });
+    comprobar('Enlace de demo ?ejemplo carga los datos', (await pagina.locator('.tarjeta').count()) === 12, await pagina.locator('.tarjeta').count());
+    comprobar('Enlace de demo: la URL queda limpia', (await pagina.evaluate(() => location.search)) === '');
+
     // Sin scroll horizontal en móvil
     const desborde = await pagina.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     comprobar('Sin desbordamiento horizontal a 390 px', desborde <= 0, desborde);

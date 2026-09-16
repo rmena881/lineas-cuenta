@@ -178,6 +178,7 @@
 
   .vacio { text-align: center; color: var(--texto-suave); padding: 48px 24px; }
   .vacio p { margin: 0 0 12px; }
+  .vacio-acciones { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
   dialog {
     border: none; border-radius: 16px 16px 0 0; padding: 0; width: 100%; max-width: 640px;
@@ -257,7 +258,10 @@
 
 <div id="vacio" class="vacio" hidden>
   <p id="vacio-texto">Todavía no hay líneas. Crea la primera o carga datos de ejemplo desde Opciones.</p>
-  <button id="btn-vacio-nueva" class="btn btn-primario" type="button">Nueva línea</button>
+  <div class="vacio-acciones">
+    <button id="btn-vacio-nueva" class="btn btn-primario" type="button">Nueva línea</button>
+    <button id="btn-vacio-ejemplo" class="btn" type="button">Cargar datos de ejemplo</button>
+  </div>
 </div>
 
 <button id="btn-fab" class="btn btn-primario fab" type="button" aria-label="Nueva línea">Nueva línea</button>
@@ -345,7 +349,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const CLAVE = 'lineas-cuenta.v1';
   const CLAVE_TEMA = 'lineas-cuenta.tema';
   const CLAVE_FILTROS = 'lineas-cuenta.filtros';
@@ -625,12 +629,14 @@
     const vacio = $('#vacio');
     if (total === 0) {
       vacio.hidden = false;
-      $('#vacio-texto').textContent = 'Todavía no hay líneas. Crea la primera o carga datos de ejemplo desde Opciones.';
+      $('#vacio-texto').textContent = 'Todavía no hay líneas. Crea la primera o carga los datos de ejemplo.';
       $('#btn-vacio-nueva').hidden = false;
+      $('#btn-vacio-ejemplo').hidden = false;
     } else if (visibles.length === 0) {
       vacio.hidden = false;
       $('#vacio-texto').textContent = 'Ninguna línea coincide con los filtros.';
       $('#btn-vacio-nueva').hidden = true;
+      $('#btn-vacio-ejemplo').hidden = true;
     } else {
       vacio.hidden = true;
     }
@@ -873,6 +879,7 @@
     $('#btn-nueva').addEventListener('click', () => abrirLinea(null));
     $('#btn-fab').addEventListener('click', () => abrirLinea(null));
     $('#btn-vacio-nueva').addEventListener('click', () => abrirLinea(null));
+    $('#btn-vacio-ejemplo').addEventListener('click', cargarEjemplo);
     form.addEventListener('submit', guardarLinea);
     $('#btn-cancelar').addEventListener('click', () => dlgLinea.close());
     $('#btn-borrar').addEventListener('click', borrarLinea);
@@ -959,6 +966,11 @@
   aplicarTema(temaGuardado());
   enlazar();
   render();
+  /* Enlace de demo: con ?ejemplo en la URL arranca con los datos de ejemplo si el dispositivo está vacío. */
+  if (new URLSearchParams(location.search).has('ejemplo')) {
+    if (!datos.lineas.length) cargarEjemplo();
+    history.replaceState(null, '', location.pathname);
+  }
   $('#acerca').textContent = 'Líneas de cuenta v' + VERSION + '. Los datos se guardan solo en este dispositivo.';
   registrarServiceWorker();
 
